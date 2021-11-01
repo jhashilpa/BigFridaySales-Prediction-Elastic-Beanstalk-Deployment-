@@ -6,10 +6,36 @@ from flask import Flask, render_template, request
 import pandas as pd
 import pickle
 import numpy as np
+import torch.nn as nn
+import torch
 from kmodes.kprototypes import KPrototypes
+
+
 
 application = Flask(__name__)
 
+import torch
+import torch.nn as nn
+class MLP(nn.Module):
+  '''
+    Multilayer Perceptron for regression.
+  '''
+  def __init__(self):
+    super().__init__()
+    self.layers = nn.Sequential(
+      nn.Linear(45, 20),
+      nn.ReLU(),
+      nn.Linear(20, 15),
+      nn.ReLU(),
+      nn.Linear(15, 1)
+    )
+
+
+  def forward(self, x):
+    '''
+      Forward pass
+    '''
+    return self.layers(x)
 
 @application.route('/', methods=['GET'])  # route to display the home page
 def homePage():
@@ -120,17 +146,21 @@ def index():
 
             # Load Prediction model as per the clusterNo.
             if (cluster_label == 0):
-                model = pickle.load(open('model_cluster0.sav', 'rb'))
+                model = torch.load('MLP_cluster0.pt')
             elif (cluster_label == 1):
-                model = pickle.load(open('model_cluster1.sav', 'rb'))
+                model = torch.load('MLP_cluster1.pt')
             else:
-                model = pickle.load(open('model_cluster2.sav', 'rb'))
+                model = torch.load('MLP_cluster2.pt')
 
             # Predict the Purchase value
-            predValue = model.predict(X)
+            with torch.no_grad():
+                predValue = model(torch.Tensor(X))
+                predValue=predValue.numpy()[0][0]
+
+            #predValue = model.predict(X)
             print("Predicted  purchased Value is : ", predValue)
 
-            return render_template('results.html', prediction=round(predValue[0], 2))
+            return render_template('results.html', prediction=round(predValue, 2))
             # showing the prediction results in a UI
 
         except Exception as e:
